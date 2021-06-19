@@ -136,6 +136,6 @@ CLEANING = {
 
 
 EWG_DATABASES = {
-    'skin deep': SKIN_DEEP,
+    'skin': SKIN_DEEP,
     'cleaning': CLEANING
 }

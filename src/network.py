@@ -19,9 +19,8 @@ def get_html_by_url(url, attempts=ATTEMPTS):
         response = requests.get(url, headers=HEADERS, timeout=TIMEOUT)
         return response.text
     except Exception as e:
-        logger.exception(e)
         if attempts > 0:
-            logger.debug(f'Try request again {url} in {SLEEP} seconds.')
+            logger.debug(f'Something went wrong, try request again {url} in {SLEEP} seconds.')
             time.sleep(SLEEP)
             return get_html_by_url(url, attempts=attempts-1) 
         raise e

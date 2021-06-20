@@ -1,22 +1,25 @@
+from scrapers import SkinDeepScraper, CleaningScraper
+
 GUIDES_SUBCATEGORIES_URL = 'https://www.ewg.org/guides/subcategories/'
 
 SUNSCREEN_URL = 'https://www.ewg.org/sunscreen/about-the-sunscreens/'
 
 BROWSE_CATEGORY_URL = 'https://www.ewg.org/skindeep/browse/category/'
 
-
 SKIN_DEEP = {
     'Personal Care': {
         'Sun': {
+            'scraper': None,
             'base_url': SUNSCREEN_URL,
-            'children': {
+            'child': {
                 'Daily use SPF': '?category=moisturizer+with+SPF',
                 'Recreational sunscreen': '?category=beach+%26+sport+sunscreen'
             }
         },
         'Skin': {
+            'scraper': None,
             'base_url': BROWSE_CATEGORY_URL,
-            'children': {
+            'child': {
                 'Bar Soap': 'Bar_soap',
                 'Bath Oil/Salts/Soak': 'Bath_oil__salts__soak',
                 'Body Wash': 'Body_wash__cleanser',
@@ -28,8 +31,9 @@ SKIN_DEEP = {
             }
         },
         'Hair': {
+            'scraper': None,
             'base_url': BROWSE_CATEGORY_URL,
-            'children': {
+            'child': {
                 'Shampoo': 'Shampoo',
                 'Conditioner': 'Conditioner',
                 'Hair Spray': 'Hair_spray',
@@ -38,16 +42,18 @@ SKIN_DEEP = {
             }
         },
         'Oral Care': {
+            'scraper': None,
             'base_url': BROWSE_CATEGORY_URL,
-            'children': {
+            'child': {
                 'Toothpaste': 'Toothpaste',
                 'Tooth Whitening': 'Tooth_whitening',
                 'Mouthwash': 'Mouthwash'
             }
         },
         'Men': {
+            'scraper': None,
             'base_url': BROWSE_CATEGORY_URL,
-            'children': {
+            'child': {
                 'Body Spray': 'Body_spray/?marketed_for=men',
                 'Body Wash': 'Body_wash__cleanser/?marketed_for=men',
                 'Beard Oil': 'Beard_oil',
@@ -59,28 +65,32 @@ SKIN_DEEP = {
     },
     'Makeup': {
         'Face': {
+            'scraper': None,
             'base_url': BROWSE_CATEGORY_URL,
-            'children': {
+            'child': {
                 'Concealer': 'Concealer',
                 'Foundation': 'Foundation',
                 'Bronzer': 'Bronzer__Highlighter'
             }
         },
         'Eyes': {
+            'scraper': None,
             'base_url': BROWSE_CATEGORY_URL,
-            'children': {
+            'child': {
                 'Eyeshadow': 'Eye_shadow'
             }
         },
         'Lips': {
+            'scraper': None,
             'base_url': BROWSE_CATEGORY_URL,
-            'children': {
+            'child': {
                 'Lipstick': 'Lipstick'
             }
         },
         'Fragrance': {
+            'scraper': None,
             'base_url': BROWSE_CATEGORY_URL,
-            'children': {
+            'child': {
                 'Body Spray': 'Body_Spray',
                 'Fragrance for Men': 'Fragrance_for_men',
                 'Fragrance for Women': 'Fragrance_for_women'
@@ -93,39 +103,44 @@ SKIN_DEEP = {
 CLEANING = {
     'Household': {
         'All Purpose': {
+            'scraper': CleaningScraper,
             'base_url': GUIDES_SUBCATEGORIES_URL,
-            'children': {
+            'child': {
                 'General Purpose Cleaner': '3-GeneralPurposeCleaner',
                 'Disinfectant': '67-Disinfectant',
                 'Glass/Window Cleaner': '4-GlassWindowCleaner'
             }
         },
         'Bathroom': {
+            'scraper': CleaningScraper,
             'base_url': GUIDES_SUBCATEGORIES_URL,
-            'children': {
+            'child': {
                 'Toilet Cleaner': '11-ToiletCleaner',
                 'Tub/Tile/Sink Cleaner': '9-TubTileSinkCleaner'
             }
         },
         'Dishwashing': {
+            'scraper': CleaningScraper,
             'base_url': GUIDES_SUBCATEGORIES_URL,
-            'children': {
+            'child': {
                 'Dishwasher Detergent': '24-DishwasherDetergent',
                 'Dishwashing Pods & Pouches': '199-DishwashingPodsPouches',
                 'Hand Washing Detergent': '25-HandWashingDetergent'
             }
         },
         'Kitchen': {
+            'scraper': CleaningScraper,
             'base_url': GUIDES_SUBCATEGORIES_URL,
-            'children': {
+            'child': {
                 'General Purpose Cleaner': '38-GeneralPurposeCleanerKitchen',
                 'Stove Top Cleaner': '44-StoveTopCleaner',
                 'Granite/Stone Cleaner': '40-GraniteStoneCleaner'
             }
         },
         'Laundry': {
+            'scraper': CleaningScraper,
             'base_url': GUIDES_SUBCATEGORIES_URL,
-            'children': {
+            'child': {
                 'Laundry Detergent, General Purpose': '47-LaundryDetergentGeneralPurpose',
                 'Laundry Detergent, HE': '49-LaundryDetergentHE',
                 'Laundry Pods & Pouches': '198-LaundryPodsPouches'

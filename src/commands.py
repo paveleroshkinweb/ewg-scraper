@@ -3,6 +3,7 @@ import logging
 from exception import InvalidArgsException
 from url_config import EWG_DATABASES
 from network import get_html_by_url
+import time
 
 logger = logging.getLogger(__name__)
 
@@ -33,8 +34,6 @@ class CommandHandlerFactory:
             raise InvalidArgsException(CommandHandlerFactory.ERROR_MSG % 'category')
         if args['subcategory'] is None and any(args[key] is not None for key in ['child', 'url', 'items_url']):
             raise InvalidArgsException(CommandHandlerFactory.ERROR_MSG % 'subcategory')
-        if args['child'] is None and any(args[key] is not None for key in ['url', 'items_url']):
-            raise InvalidArgsException(CommandHandlerFactory.ERROR_MSG % 'child')
         CommandHandlerFactory._validate_path(args)
 
 
@@ -46,19 +45,23 @@ class CommandHandlerFactory:
         
         def is_url_scrape_command(args):
             return args['url'] is not None
+        
+        def is_child_command(args):
+            return args['child'] is not None
 
         CommandHandlerFactory._validate_args(args)
         if is_default_command(args):
             return DefaultCommandHandler(args)
         if is_url_scrape_command(args):
             return ItemCommandHandler(args)
+        if is_child_command(args):
+            return ChildCommandHandler(args)
 
 
 class CommandHandler(ABC):
 
     def __init__(self, args):
         self.args = args
-        logger.debug(f"Handler {type(self)} was created!")
 
     @abstractmethod
     def process(self):
@@ -71,13 +74,11 @@ class DefaultCommandHandler(CommandHandler):
         super(DefaultCommandHandler, self).__init__(args)
 
     def process(self):
-        results = []
         for db_name in EWG_DATABASES.keys():
             command_args = {**self.args, 'db': db_name}
             handler = DatabaseCommandHandler(command_args)
-            handler_results = handler.process()
-            results.extend(handler_results)
-        return results
+            for chunk_result in handler.process():
+                yield chunk_result
 
 
 class DatabaseCommandHandler(CommandHandler):
@@ -87,13 +88,11 @@ class DatabaseCommandHandler(CommandHandler):
     
     def process(self):
         db = EWG_DATABASES[self.args['db']]
-        results = []
         for category_name in db.keys():
             command_args = {**self.args, 'category': category_name}
             handler = CategoryCommandHandler(command_args)
-            handler_results = handler.process()
-            results.extend(handler_results)
-        return results
+            for chunk_result in handler.process():
+                yield chunk_result
 
 
 class CategoryCommandHandler(CommandHandler):
@@ -102,10 +101,26 @@ class CategoryCommandHandler(CommandHandler):
         super(CategoryCommandHandler, self).__init__(args) 
 
     def process(self):
-        return []
-        # db = EWG_DATABASES[args['db']]
-        # schema = db['schema']
-        # pass
+        category = EWG_DATABASES[self.args['db']][self.args['category']]
+        for subcategory_name in category.keys():
+            command_args = {**self.args, 'subcategory': subcategory_name}
+            handler = SubcategoryCommandHandler(command_args)
+            for chunk_result in handler.process():
+                yield chunk_result
+
+
+class SubcategoryCommandHandler(CommandHandler):
+
+    def __init__(self, args):
+        super(SubcategoryCommandHandler, self).__init__(args)
+    
+    def process(self):
+        subcategory = EWG_DATABASES[self.args['db']][self.args['category']][self.args['subcategory']]
+        for child in subcategory['child']:
+            command_args = {**self.args, 'child': child}
+            handler = ChildCommandHandler(command_args)
+            for chunk_result in handler.process():
+                yield chunk_result
 
 
 class ChildCommandHandler(CommandHandler):
@@ -114,24 +129,61 @@ class ChildCommandHandler(CommandHandler):
         super(ChildCommandHandler, self).__init__(args) 
 
     def process(self):
-        pass
+        child =  EWG_DATABASES[self.args['db']][self.args['category']][self.args['subcategory']]['child'][self.args['child']]
+        base_url = EWG_DATABASES[self.args['db']][self.args['category']][self.args['subcategory']]['base_url']
+        items_url = base_url + child
+        command_args = {**self.args, 'items_url': items_url}
+        handler = ItemsPagesCommandHandler(command_args)
+        for chunk_result in handler.process():
+            yield chunk_result
+
+
+class ItemsPagesCommandHandler(CommandHandler):
+
+    def __init__(self, args):
+        super(ItemsPagesCommandHandler, self).__init__(args)
+
+    def process(self):
+        items_url = self.args['items_url']
+        scraper_cls = EWG_DATABASES[self.args['db']][self.args['category']][self.args['subcategory']]['scraper']
+        while items_url:
+            try:
+                html = get_html_by_url(items_url)
+                scraper = scraper_cls(html)
+                logger.info(f'Scraping items page {items_url}')
+                next_page, links = scraper.scrape_items_page()
+                chunks = []
+                for item_link in links:
+                    command_args = {**self.args, 'url': item_link}
+                    handler = ItemCommandHandler(command_args)
+                    data = list(handler.process())[0]
+                    chunks.extend(data)
+                items_url = next_page
+                yield chunks
+            except Exception:
+                logger.exception(f"Couldn't process items page {items_url}, skipping...")
+                items_url = None
+                yield []
+                
 
 
 class ItemCommandHandler(CommandHandler):
 
     def __init__(self, args):
         super(ItemCommandHandler, self).__init__(args)
-    
+
     def process(self):
         db = EWG_DATABASES[self.args['db']]
         url = self.args['url']
-        scraper_cls = db[self.args['category']][self.args['subcategory']]['child'][self.args['child']]
+        scraper_cls = db[self.args['category']][self.args['subcategory']]['scraper']
         logger.info(f'Scraping {self.args["db"]} item_url {url}')
         html = None
         try:
             html = get_html_by_url(url)
         except Exception:
             logger.exception(f"Couldn't access item_url {url}, skipping...")
-            return []
+            yield []
         scraper = scraper_cls(html)
-        return [scraper.scrape_item()]
+        logger.info(f'Scraping item page {url}')
+        data = scraper.scrape_item(category=self.args['subcategory'], db=self.args['db'])
+        yield [data]

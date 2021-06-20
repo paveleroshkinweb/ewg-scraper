@@ -18,6 +18,7 @@ if __name__ == '__main__':
     args = vars(parser.parse_args())
     try:
         command_hanlder = CommandHandlerFactory.getCommandByArguments(args)
-        command_hanlder.process()
+        for chunk in command_hanlder.process():
+            print(chunk)
     except Exception as e:
         logger.exception(e)

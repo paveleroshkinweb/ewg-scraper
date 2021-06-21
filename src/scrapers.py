@@ -28,13 +28,13 @@ class Scraper(ABC):
     def get_text_by_selector(self, selector):
         node = self.parser.select_one(selector)
         if node:
-            return node.text
+            return node.text.strip()
         return None
     
     def get_text_by_selector_in_cont(self, container, selector):
         node = container.select_one(selector)
         if node:
-            return node.text
+            return node.text.strip()
         return None
 
 
@@ -70,12 +70,22 @@ class CleaningScraper(Scraper):
             return None, []
     
     def _get_product_name(self):
-        return self.get_text_by_selector('h1.h1large')
+        return self.get_text_by_selector('h1.h1large') or \
+               self.get_text_by_selector('h1.h1medium') or \
+               self.get_text_by_selector('h1.h1small') or \
+               self.get_text_by_selector('h1.h1verysmall') or \
+               self.get_text_by_selector('div#productname')
     
     def _get_brand(self):
         with suppress(Exception):
-            brand = self.parser.select('div#prodname_name')[1].text
-            return brand.split(':')[-1].strip()
+            containers = self.parser.select('div#prodname_name')
+            if containers:
+                for container in containers:
+                    if container.text.startswith('Brand'):
+                        brand = container.text.split(':')[-1].strip()
+                        if brand.endswith('...'):
+                            brand = brand[:-3]
+                        return brand.strip()
 
     def _get_cleaning(self):
         cleaning = {}
@@ -92,7 +102,7 @@ class CleaningScraper(Scraper):
         except Exception as e:
             logger.exception(e)
         return cleaning
-    
+
     def _get_list_of_ingridients(self):
         ingridients = []
         try:
@@ -103,6 +113,21 @@ class CleaningScraper(Scraper):
         except Exception as e:
             logger.exception(e)
         return ', '.join(ingridients)
+    
+    def _get_chemicals(self):
+        chemicals = []
+        try:
+            containers = self.parser.select('div#Product_Ingredients div.innertab div.datarow')[1:]
+            for container in containers:
+                data = {
+                    NAME: self.get_text_by_selector_in_cont(container, 'a.substance_ahref'),
+                    CONCERNS: self.get_text_by_selector_in_cont(container, 'div.dcol2_4 b'),
+                    EWG_SCORE: self.get_text_by_selector_in_cont(container, 'div.dcol3_4 a[rel="popup_scores"]')
+                }
+                chemicals.append(data)
+        except Exception as e:
+            logger.exception(e)
+        return chemicals
 
     def scrape_item(self, **kwargs):
         data = {}
@@ -112,7 +137,11 @@ class CleaningScraper(Scraper):
         data[EWG_SCORE] = 'EWG verified'
         data[UPC_CODE] = None
         data[TERA_CATEGORY] = kwargs['category']
+        data[URL] = kwargs['url']
         data['db'] = kwargs['db']
-        data['url'] = kwargs['url']
+        data[CHEMICALS] = self._get_chemicals()
         data = {**data, **self._get_cleaning()}
+        if not data[PRODUCT_NAME] or not data[BRAND]:
+            logger.debug(f'{PRODUCT_NAME} or {BRAND} is abscent, do not saving item')
+            return None
         return data

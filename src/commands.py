@@ -154,6 +154,7 @@ class ItemsPagesCommandHandler(CommandHandler):
                 next_page, links = scraper.scrape_items_page()
                 chunks = []
                 for item_link in links:
+                    time.sleep(3)
                     command_args = {**self.args, 'url': item_link}
                     handler = ItemCommandHandler(command_args)
                     data = list(handler.process())[0]
@@ -186,4 +187,7 @@ class ItemCommandHandler(CommandHandler):
         scraper = scraper_cls(html)
         logger.info(f'Scraping item page {url}')
         data = scraper.scrape_item(category=self.args['subcategory'], db=self.args['db'], url=url)
-        yield [data]
+        if data:
+            yield [data]
+        else:
+            yield []

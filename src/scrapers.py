@@ -113,5 +113,6 @@ class CleaningScraper(Scraper):
         data[UPC_CODE] = None
         data[TERA_CATEGORY] = kwargs['category']
         data['db'] = kwargs['db']
+        data['url'] = kwargs['url']
         data = {**data, **self._get_cleaning()}
         return data

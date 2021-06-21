@@ -185,5 +185,5 @@ class ItemCommandHandler(CommandHandler):
             yield []
         scraper = scraper_cls(html)
         logger.info(f'Scraping item page {url}')
-        data = scraper.scrape_item(category=self.args['subcategory'], db=self.args['db'])
+        data = scraper.scrape_item(category=self.args['subcategory'], db=self.args['db'], url=url)
         yield [data]

@@ -19,6 +19,6 @@ if __name__ == '__main__':
     try:
         command_hanlder = CommandHandlerFactory.getCommandByArguments(args)
         for chunk in command_hanlder.process():
-            print(chunk)
+            pass
     except Exception as e:
         logger.exception(e)

@@ -31,7 +31,7 @@ SKIN_DEEP = {
             }
         },
         'Hair': {
-            'scraper': None,
+            'scraper': SkinScraper,
             'base_url': BROWSE_CATEGORY_URL,
             'child': {
                 'Shampoo': 'Shampoo',
@@ -42,7 +42,7 @@ SKIN_DEEP = {
             }
         },
         'Oral Care': {
-            'scraper': None,
+            'scraper': SkinScraper,
             'base_url': BROWSE_CATEGORY_URL,
             'child': {
                 'Toothpaste': 'Toothpaste',
@@ -51,7 +51,7 @@ SKIN_DEEP = {
             }
         },
         'Men': {
-            'scraper': None,
+            'scraper': SkinScraper,
             'base_url': BROWSE_CATEGORY_URL,
             'child': {
                 'Body Spray': 'Body_spray/?marketed_for=men',
@@ -65,7 +65,7 @@ SKIN_DEEP = {
     },
     'Makeup': {
         'Face': {
-            'scraper': None,
+            'scraper': SkinScraper,
             'base_url': BROWSE_CATEGORY_URL,
             'child': {
                 'Concealer': 'Concealer',
@@ -74,21 +74,21 @@ SKIN_DEEP = {
             }
         },
         'Eyes': {
-            'scraper': None,
+            'scraper': SkinScraper,
             'base_url': BROWSE_CATEGORY_URL,
             'child': {
                 'Eyeshadow': 'Eye_shadow'
             }
         },
         'Lips': {
-            'scraper': None,
+            'scraper': SkinScraper,
             'base_url': BROWSE_CATEGORY_URL,
             'child': {
                 'Lipstick': 'Lipstick'
             }
         },
         'Fragrance': {
-            'scraper': None,
+            'scraper': SkinScraper,
             'base_url': BROWSE_CATEGORY_URL,
             'child': {
                 'Body Spray': 'Body_Spray',

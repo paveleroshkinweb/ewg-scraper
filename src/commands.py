@@ -47,6 +47,15 @@ class CommandHandlerFactory:
         
         def is_child_command(args):
             return args['child'] is not None
+        
+        def is_subcategory_command(args):
+            return args['subcategory'] is not None
+        
+        def is_category_command(args):
+            return args['category'] is not None
+
+        def is_database_command(args):
+            return args['db'] is not None
 
         CommandHandlerFactory._validate_args(args)
         if is_default_command(args):
@@ -55,7 +64,13 @@ class CommandHandlerFactory:
             return ItemCommandHandler(args)
         if is_child_command(args):
             return ChildCommandHandler(args)
-
+        if is_subcategory_command(args):
+            return SubcategoryCommandHandler(args)
+        if is_category_command(args):
+            return CategoryCommandHandler(args)
+        if is_database_command(args):
+            return DatabaseCommandHandler(args)
+        return DefaultCommandHandler(args)
 
 class CommandHandler(ABC):
 
@@ -73,6 +88,7 @@ class DefaultCommandHandler(CommandHandler):
         super(DefaultCommandHandler, self).__init__(args)
 
     def process(self):
+        logger.info("Scraping all EWG databases")
         for db_name in EWG_DATABASES.keys():
             command_args = {**self.args, 'db': db_name}
             handler = DatabaseCommandHandler(command_args)
@@ -87,6 +103,7 @@ class DatabaseCommandHandler(CommandHandler):
     
     def process(self):
         db = EWG_DATABASES[self.args['db']]
+        logger.info(f"Scraping database {self.args['db']}")
         for category_name in db.keys():
             command_args = {**self.args, 'category': category_name}
             handler = CategoryCommandHandler(command_args)
@@ -101,6 +118,7 @@ class CategoryCommandHandler(CommandHandler):
 
     def process(self):
         category = EWG_DATABASES[self.args['db']][self.args['category']]
+        logger.info(f"Scraping category {self.args['category']}")
         for subcategory_name in category.keys():
             command_args = {**self.args, 'subcategory': subcategory_name}
             handler = SubcategoryCommandHandler(command_args)
@@ -115,6 +133,7 @@ class SubcategoryCommandHandler(CommandHandler):
     
     def process(self):
         subcategory = EWG_DATABASES[self.args['db']][self.args['category']][self.args['subcategory']]
+        logger.info(f"Scraping subcategory {self.args['subcategory']}")
         for child in subcategory['child']:
             command_args = {**self.args, 'child': child}
             handler = ChildCommandHandler(command_args)
@@ -132,6 +151,7 @@ class ChildCommandHandler(CommandHandler):
         base_url = EWG_DATABASES[self.args['db']][self.args['category']][self.args['subcategory']]['base_url']
         items_url = base_url + child
         command_args = {**self.args, 'items_url': items_url}
+        logger.info(f"Scraping child {self.args['child']}")
         handler = ItemsPagesCommandHandler(command_args)
         for chunk_result in handler.process():
             yield chunk_result
@@ -153,6 +173,7 @@ class ItemsPagesCommandHandler(CommandHandler):
                 next_page, links = scraper.scrape_items_page()
                 chunks = []
                 if links:
+                    logger.info(f'Scraping {len(links)} links: {links}')
                     for item_link in links:
                         time.sleep(3)
                         command_args = {**self.args, 'url': item_link}
@@ -160,6 +181,7 @@ class ItemsPagesCommandHandler(CommandHandler):
                         data = list(handler.process())[0]
                         chunks.extend(data)
                     items_url = next_page
+                    logger.info(f"Successfully scraped {len(chunks)} links: {chunks}")
                     yield chunks
             except Exception:
                 logger.exception(f"Couldn't process items page {items_url}, skipping...")

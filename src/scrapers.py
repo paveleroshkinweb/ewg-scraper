@@ -56,7 +56,7 @@ class SunScraper(Scraper):
                 return next_link, links
         except Exception as e:
             logger.exception(e)
-            return None, []
+        return None, []
 
     def _get_product_name(self):
         return self.get_text_by_selector('h1.tyty2015_class_truncate_title_specific_product_page')
@@ -152,7 +152,7 @@ class SkinScraper(Scraper):
                 return next_link, links
         except Exception as e:
             logger.exception(e)
-            return None, []
+        return None, []
     
     def _get_product_name(self):
         return self.get_text_by_selector('h2.product-name')
@@ -263,7 +263,7 @@ class CleaningScraper(Scraper):
                 return next_link, links
         except Exception as e:
             logger.exception(e)
-            return None, []
+        return None, []
     
     def _get_product_name(self):
         return self.get_text_by_selector('h1.h1large') or \

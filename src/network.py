@@ -24,6 +24,3 @@ def get_html_by_url(url, attempts=ATTEMPTS):
             time.sleep(SLEEP)
             return get_html_by_url(url, attempts=attempts-1) 
         raise e
-
-
-

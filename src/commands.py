@@ -28,7 +28,6 @@ class CommandHandlerFactory:
     @staticmethod
     def _validate_args(args):
         if args['db'] is not None and args['db'] not in EWG_DATABASES.keys():
-            raise InvalidArgsException(f'db should be one of: {EWG_DATABASES.keys()}!')
             raise InvalidArgsException(CommandHandlerFactory.ERROR_MSG % 'db')
         if args['category'] is None and any(args[key] is not None for key in ['subcategory', 'child', 'url', 'items_url']):
             raise InvalidArgsException(CommandHandlerFactory.ERROR_MSG % 'category')
@@ -153,19 +152,19 @@ class ItemsPagesCommandHandler(CommandHandler):
                 logger.info(f'Scraping items page {items_url}')
                 next_page, links = scraper.scrape_items_page()
                 chunks = []
-                for item_link in links:
-                    time.sleep(3)
-                    command_args = {**self.args, 'url': item_link}
-                    handler = ItemCommandHandler(command_args)
-                    data = list(handler.process())[0]
-                    chunks.extend(data)
-                items_url = next_page
-                yield chunks
+                if links:
+                    for item_link in links:
+                        time.sleep(3)
+                        command_args = {**self.args, 'url': item_link}
+                        handler = ItemCommandHandler(command_args)
+                        data = list(handler.process())[0]
+                        chunks.extend(data)
+                    items_url = next_page
+                    yield chunks
             except Exception:
                 logger.exception(f"Couldn't process items page {items_url}, skipping...")
                 items_url = None
                 yield []
-                
 
 
 class ItemCommandHandler(CommandHandler):

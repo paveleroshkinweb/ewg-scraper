@@ -1,4 +1,4 @@
-TERA_CATEGORY = 'TERA CATEGORY'
+TERA_CATEGORY = 'Tera category'
 PRODUCT_NAME = 'Product Name'
 UPC_CODE = 'UPC CODE'
 BRAND = 'Brand'
@@ -12,16 +12,8 @@ EWG_SCORE = 'EWG score'
 URL = 'Url'
 NAME = 'Name'
 CONCERNS = 'Concerns'
+CLEANING = 'Cleaning'
 CHEMICALS = 'Chemicals'
-CLEANING = [ASTHMA_RESPIRATORY, SKIN_ALLERGIES, DEVELOPMENTAL_REPRODUCTIVE_TOXICITY, CANCER, ENVIRONMENT]
-
-CLEANING_ORDER = [PRODUCT_NAME,
-                  UPC_CODE,
-                  BRAND,
-                  ASTHMA_RESPIRATORY,
-                  SKIN_ALLERGIES,
-                  DEVELOPMENTAL_REPRODUCTIVE_TOXICITY,
-                  CANCER,
-                  ENVIRONMENT,
-                  LIST_OF_INGREDIENTS,
-                  EWG_SCORE]
+SKIN_DEEP = 'Skin Deep'
+ALLERGIES_IMMUNOTOXICITY = 'Allergies & Immunotoxicity'
+USE_RESTRICTIONS = 'Use restrictions'

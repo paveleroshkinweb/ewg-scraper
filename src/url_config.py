@@ -1,4 +1,4 @@
-from scrapers import SkinDeepScraper, CleaningScraper
+from scrapers import SunScraper, CleaningScraper
 
 GUIDES_SUBCATEGORIES_URL = 'https://www.ewg.org/guides/subcategories/'
 
@@ -9,7 +9,7 @@ BROWSE_CATEGORY_URL = 'https://www.ewg.org/skindeep/browse/category/'
 SKIN_DEEP = {
     'Personal Care': {
         'Sun': {
-            'scraper': None,
+            'scraper': SunScraper,
             'base_url': SUNSCREEN_URL,
             'child': {
                 'Daily use SPF': '?category=moisturizer+with+SPF',

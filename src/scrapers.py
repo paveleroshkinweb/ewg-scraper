@@ -5,6 +5,7 @@ from columns import *
 from contextlib import suppress
 from urllib.parse import urljoin
 import logging
+import re
 
 
 logger = logging.getLogger(__name__)
@@ -38,16 +39,84 @@ class Scraper(ABC):
         return None
 
 
-class SkinDeepScraper(Scraper):
+class SunScraper(Scraper):
 
     def __init__(self, html):
-        super(SkinDeepScraper, self).__init__(html)
+        super(SunScraper, self).__init__(html)
 
     def scrape_items_page(self):
-        pass
+        next_link = None
+        try:
+            link_elements = self.parser.select('ul.search_results_list li a')
+            if link_elements:
+                links = set([link['href'] for link in link_elements])
+                next_url_elements = self.parser.select('ul.cd-pagination li.button a')
+                if next_url_elements:
+                    next_link = next_url_elements[-1]['href']
+                return next_link, links
+        except Exception as e:
+            logger.exception(e)
+            return None, []
+
+    def _get_product_name(self):
+        return self.get_text_by_selector('h1.tyty2015_class_truncate_title_specific_product_page')
+
+    def _get_list_of_ingridients(self):
+        ingridients = []
+        try:
+            containers = self.parser.select('div.ingredient_right h1 a')
+            for container in containers:
+                ingridients.append(container.text.strip())
+        except Exception as e:
+            logger.exception(e)
+        return ', '.join(ingridients)
+    
+    def _get_chemicals(self):
+        chemicals = []
+        try:
+            chemical_scores = self.parser.select('div#ing_score_wrap div.score_left.center img[title="Score"][src]')
+            chemical_scores = [score['src'] for score in chemical_scores if score['src'] is not None and not score['src'].startswith('data:')]
+            ingridents = self.parser.select('div#ing_score_wrap div.ingredient_right')[1:]
+            for score, ingridient in zip(chemical_scores, ingridents):
+                with suppress(Exception):
+                    concern = self.get_text_by_selector_in_cont(ingridient, 'p')
+                    if concern and concern.startswith('Concerns:'):
+                        concern = concern[10:]
+                    data = {
+                        NAME: self.get_text_by_selector_in_cont(ingridient, 'a'),
+                        CONCERNS: concern,
+                        EWG_SCORE: re.search(r'-(\d+).png', score).group(1)
+                    }
+                    chemicals.append(data)
+        except Exception as e:
+            logger.exception(e)
+        return chemicals
 
     def scrape_item(self, **kwargs):
-        pass
+        data = {}
+        try:
+            data[PRODUCT_NAME] = self._get_product_name()
+            data[BRAND] = None
+            data[LIST_OF_INGREDIENTS] = self._get_list_of_ingridients()
+            data[EWG_SCORE] = 'EWG verified'
+            data[UPC_CODE] = None
+            data[TERA_CATEGORY] = kwargs['category']
+            data[URL] = kwargs['url']
+            data['db'] = kwargs['db']
+            data[CHEMICALS] = self._get_chemicals()
+            data[SKIN_DEEP] = {
+                CANCER: None,
+                DEVELOPMENTAL_REPRODUCTIVE_TOXICITY: None,
+                ALLERGIES_IMMUNOTOXICITY: None,
+                USE_RESTRICTIONS: None
+            }
+            if not data[PRODUCT_NAME]:
+                logger.debug(f'{PRODUCT_NAME} is abscent, do not saving item')
+                return None
+            return data
+        except Exception as e:
+            logger.exception(e)
+            return None
 
 
 class CleaningScraper(Scraper):
@@ -131,17 +200,21 @@ class CleaningScraper(Scraper):
 
     def scrape_item(self, **kwargs):
         data = {}
-        data[PRODUCT_NAME] = self._get_product_name()
-        data[BRAND] = self._get_brand()
-        data[LIST_OF_INGREDIENTS] = self._get_list_of_ingridients()
-        data[EWG_SCORE] = 'EWG verified'
-        data[UPC_CODE] = None
-        data[TERA_CATEGORY] = kwargs['category']
-        data[URL] = kwargs['url']
-        data['db'] = kwargs['db']
-        data[CHEMICALS] = self._get_chemicals()
-        data = {**data, **self._get_cleaning()}
-        if not data[PRODUCT_NAME] or not data[BRAND]:
-            logger.debug(f'{PRODUCT_NAME} or {BRAND} is abscent, do not saving item')
+        try:
+            data[PRODUCT_NAME] = self._get_product_name()
+            data[BRAND] = self._get_brand()
+            data[LIST_OF_INGREDIENTS] = self._get_list_of_ingridients()
+            data[EWG_SCORE] = 'EWG verified'
+            data[UPC_CODE] = None
+            data[TERA_CATEGORY] = kwargs['category']
+            data[URL] = kwargs['url']
+            data['db'] = kwargs['db']
+            data[CHEMICALS] = self._get_chemicals()
+            data[CLEANING] = self._get_cleaning()
+            if not data[PRODUCT_NAME] or not data[BRAND]:
+                logger.debug(f'{PRODUCT_NAME} or {BRAND} is abscent, do not saving item')
+                return None
+            return data
+        except Exception as e:
+            logger.exception(e)
             return None
-        return data

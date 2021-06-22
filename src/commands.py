@@ -209,6 +209,7 @@ class ItemCommandHandler(CommandHandler):
         logger.info(f'Scraping item page {url}')
         data = scraper.scrape_item(category=self.args['subcategory'], db=self.args['db'], url=url)
         if data:
+            logger.info(f"Successfully scraped url: {url}, data: {data}")
             yield [data]
         else:
             yield []

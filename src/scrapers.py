@@ -91,14 +91,30 @@ class SunScraper(Scraper):
         except Exception as e:
             logger.exception(e)
         return chemicals
+    
+    def _get_score(self):
+        imgs = self.parser.select('img[title="Score"][alt="Score"]')
+        if imgs:
+            with suppress(Exception):
+                img = [img for img in imgs if img['src'] and not img['src'].startswith('data:image')][0]
+                src = img['src']
+                score = re.search(r'EWG_SunscreenScores-(\d+)', src)
+                if score:
+                    return score.group(1)
+                return 'VERIFIED'
+    
+    def _get_brand(self):
+        with suppress(Exception):
+            element = self.parser.find('a', {'title': re.compile(r'see more sunscreens by .+?')})
+            return element.text
 
     def scrape_item(self, **kwargs):
         data = {}
         try:
             data[PRODUCT_NAME] = self._get_product_name()
-            data[BRAND] = None
+            data[BRAND] = self._get_brand()
             data[LIST_OF_INGREDIENTS] = self._get_list_of_ingridients()
-            data[EWG_SCORE] = 'EWG verified'
+            data[EWG_SCORE] = self._get_score()
             data[UPC_CODE] = None
             data[TERA_CATEGORY] = kwargs['category']
             data[URL] = kwargs['url']
@@ -110,8 +126,8 @@ class SunScraper(Scraper):
                 ALLERGIES_IMMUNOTOXICITY: None,
                 USE_RESTRICTIONS: None
             }
-            if not data[PRODUCT_NAME]:
-                logger.debug(f'{PRODUCT_NAME} is abscent, do not saving item')
+            if not data[PRODUCT_NAME] or not data[BRAND]:
+                logger.debug(f'{PRODUCT_NAME} or {BRAND} is abscent, do not saving item')
                 return None
             return data
         except Exception as e:
@@ -202,14 +218,20 @@ class SkinScraper(Scraper):
                 concern = re.findall(rf'{substr} concern is (\w+)', self.html)[index]
                 skin_deep[key] = concern
         return skin_deep
-            
+    
+    def _get_score(self):
+        with suppress(Exception):
+            src = self.parser.select_one('div.product-score img')['src']
+            score = re.search(r'score-(.+?)-', src).group(1).replace('0', '')
+            return score
+    
     def scrape_item(self, **kwargs):
         data = {}
         try:
             data[PRODUCT_NAME] = self._get_product_name()
             data[BRAND] = self._get_brand()
             data[LIST_OF_INGREDIENTS] = self._get_list_of_ingridients()
-            data[EWG_SCORE] = 'EWG verified'
+            data[EWG_SCORE] = self._get_score()
             data[UPC_CODE] = None
             data[TERA_CATEGORY] = kwargs['category']
             data[URL] = kwargs['url']
@@ -309,7 +331,7 @@ class CleaningScraper(Scraper):
             data[PRODUCT_NAME] = self._get_product_name()
             data[BRAND] = self._get_brand()
             data[LIST_OF_INGREDIENTS] = self._get_list_of_ingridients()
-            data[EWG_SCORE] = 'EWG verified'
+            data[EWG_SCORE] = self.get_text_by_selector('a[rel="popup_scores_product"]')
             data[UPC_CODE] = None
             data[TERA_CATEGORY] = kwargs['category']
             data[URL] = kwargs['url']

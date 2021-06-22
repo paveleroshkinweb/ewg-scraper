@@ -119,6 +119,111 @@ class SunScraper(Scraper):
             return None
 
 
+class SkinScraper(Scraper):
+
+    def __init__(self, html):
+        super(SkinScraper, self).__init__(html)
+
+    def scrape_items_page(self):
+        next_link = None
+        try:
+            link_elements = self.parser.select('section.product-listings div.product-tile a')
+            if link_elements:
+                links = set([urljoin(DOMAIN, link['href']) for link in link_elements])
+                next_url_element = self.parser.select_one('a.next_page')
+                if next_url_element:
+                    next_link = urljoin(DOMAIN, next_url_element['href'])
+                return next_link, links
+        except Exception as e:
+            logger.exception(e)
+            return None, []
+    
+    def _get_product_name(self):
+        return self.get_text_by_selector('h2.product-name')
+    
+    def _get_brand(self):
+        with suppress(Exception):
+            brand_container = self.parser.find('a', {'href': re.compile(r'/brands/.+?')})
+            if brand_container:
+                return self.get_text_by_selector_in_cont(brand_container, 'div')
+
+    def _get_list_of_ingridients(self):
+        try:
+            return self.parser.select_one('section#label-information').select_one('p').text.strip()
+        except Exception:
+            ingridients = []
+            with suppress(Exception):
+                containers = self.parser.select('td.td-ingredient div.td-ingredient-interior a')
+                for container in containers:
+                    ingridients.append(container.text.strip())
+                return ', '.join(ingridients)
+    
+    def _extract_score_from_url(self, src):
+        return int(re.search(r'/score-(\d+?)-', src).group(1))
+    
+    def _get_chemicals(self):
+        chemicals = []
+        try:
+            containers = self.parser.select('table.table-ingredient-concerns tbody tr')
+            for container in containers:
+                with suppress(Exception):
+                    score_src = container.select_one('td.td-score img')['src']
+                    score = self._extract_score_from_url(score_src)
+                    name = self.get_text_by_selector_in_cont(container, 'div.td-ingredient-interior a')
+                    concern = self.get_text_by_selector_in_cont(container, 'div.td-concern-interior p')
+                    if concern == '':
+                        concern = None
+                    if concern:
+                        concern = concern.replace('•', ',')
+                    data = {
+                        NAME: name,
+                        CONCERNS: concern,
+                        EWG_SCORE: score
+                    }
+                    chemicals.append(data)
+        except Exception as e:
+            logger.exception(e)
+        return chemicals
+    
+    def _get_skin_deep(self):
+        skin_deep = {
+            CANCER: None,
+            DEVELOPMENTAL_REPRODUCTIVE_TOXICITY: None,
+            ALLERGIES_IMMUNOTOXICITY: None,
+            USE_RESTRICTIONS: None
+        }
+        items = [(CANCER, 'Cancer', 0), 
+                (DEVELOPMENTAL_REPRODUCTIVE_TOXICITY, 'Developmental &amp; reproductive toxicity', 0),
+                (ALLERGIES_IMMUNOTOXICITY, 'Allergies &amp; immunotoxicity', 0),
+                (USE_RESTRICTIONS, 'Allergies &amp; immunotoxicity', -1)]
+        for key, substr, index in items:
+            with suppress(Exception):
+                regex = re.compile(rf'{substr} concern is (\w+)', re.IGNORECASE)
+                concern = re.findall(rf'{substr} concern is (\w+)', self.html)[index]
+                skin_deep[key] = concern
+        return skin_deep
+            
+    def scrape_item(self, **kwargs):
+        data = {}
+        try:
+            data[PRODUCT_NAME] = self._get_product_name()
+            data[BRAND] = self._get_brand()
+            data[LIST_OF_INGREDIENTS] = self._get_list_of_ingridients()
+            data[EWG_SCORE] = 'EWG verified'
+            data[UPC_CODE] = None
+            data[TERA_CATEGORY] = kwargs['category']
+            data[URL] = kwargs['url']
+            data['db'] = kwargs['db']
+            data[CHEMICALS] = self._get_chemicals()
+            data[SKIN_DEEP] = self._get_skin_deep()
+            if not data[PRODUCT_NAME] or not data[BRAND]:
+                logger.debug(f'{PRODUCT_NAME} or {BRAND} is abscent, do not saving item')
+                return None
+            return data
+        except Exception as e:
+            logger.exception(e)
+            return None
+
 class CleaningScraper(Scraper):
 
     def __init__(self, html):

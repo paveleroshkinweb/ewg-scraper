@@ -1,4 +1,4 @@
-from scrapers import SunScraper, CleaningScraper
+from scrapers import SunScraper, CleaningScraper, SkinScraper
 
 GUIDES_SUBCATEGORIES_URL = 'https://www.ewg.org/guides/subcategories/'
 
@@ -17,7 +17,7 @@ SKIN_DEEP = {
             }
         },
         'Skin': {
-            'scraper': None,
+            'scraper': SkinScraper,
             'base_url': BROWSE_CATEGORY_URL,
             'child': {
                 'Bar Soap': 'Bar_soap',
